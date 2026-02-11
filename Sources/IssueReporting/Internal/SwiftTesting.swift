@@ -2,21 +2,6 @@ import Foundation
 
 #if canImport(IssueReportingPackageSupport)
   import IssueReportingPackageSupport
-#else
-  @usableFromInline
-  struct _Test {
-    @usableFromInline
-    let id: AnyHashable
-
-    @usableFromInline
-    let traits: [any Sendable]
-
-    @usableFromInline
-    init(id: AnyHashable, traits: [any Sendable]) {
-      self.id = id
-      self.traits = traits
-    }
-  }
 #endif
 
 #if canImport(WinSDK)

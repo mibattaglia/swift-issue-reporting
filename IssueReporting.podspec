@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name           = 'IssueReporting'
-  s.version        = '1.8.3'
+  s.version        = '1.8.4'
   s.summary        = 'Unobtrusive Swift issue reporting.'
   s.description    = 'Lightweight issue reporting tools extracted from XCTestDynamicOverlay.'
   s.author         = 'Point-Free'
