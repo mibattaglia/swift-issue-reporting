@@ -4,42 +4,47 @@ Learn how to report issues in your application code, and how to customize how is
 
 ## Installation
 
-Issue Reporting is an evolution of our previous library, XCTestDynamicOverlay. As such, to use this 
-library you must depend on the old repository URL. This means if you are using the Xcode
-"Package Dependencies" interface you will enter the following URL when adding the package:
-
-```
-https://github.com/pointfreeco/xctest-dynamic-overlay
-```
-
-And if you are using an SPM Package.swift file you will specify the dependency like so:
+To use this library in a SwiftPM project, add it to the dependencies of your Package.swift:
 
 ```swift
-.package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
+.package(url: "https://github.com/pointfreeco/swift-issue-reporting", from: "2.0.0"),
 ```
 
-…and add the dependency product to your target like so:
+…and specify the `IssueReporting` product in any targets that need access to the library:
 
 ```swift
 .target(
   "MyTarget",
   dependencies: [
-    .product(name: "IssueReporting", package: "xctest-dynamic-overlay")
+    .product(name: "IssueReporting", package: "swift-issue-reporting")
+  ]
+)
+```
+
+Further, add the `IssueReportingTestSupport` product to any test targets that assert against code
+that reports issues:
+
+```swift
+.testTarget(
+  "MyTargetTests",
+  dependencies: [
+    "MyTarget",
+    .product(name: "IssueReportingTestSupport", package: "swift-issue-reporting")
   ]
 )
 ```
 
 ## Reporting issues
 
-The primary tool for reporting an issue in your application code is the 
-[`reportIssue`](<doc:reportIssue(_:fileID:filePath:line:column:)>) function. You can invoke it from
+The primary tool for reporting an issue in your application code is the
+[`reportIssue`](<doc:reportIssue(_:severity:fileID:filePath:line:column:)>) function. You can invoke it from
 anywhere in your features' code to signal that something happened that should not have:
 
 ```swift
 guard let lastItem = items.last
 else {
   reportIssue("'items' should never be empty.")
-  return 
+  return
 }
 // ...
 ```
@@ -52,11 +57,11 @@ By default, this will trigger an unobtrusive, purple runtime warning when runnin
 This provides a very visual way to see when an issue has occurred in your application without
 stopping the app's execution or interrupting your workflow.
 
-The [`reportIssue`](<doc:reportIssue(_:fileID:filePath:line:column:)>) tool can also be customized
+The [`reportIssue`](<doc:reportIssue(_:severity:fileID:filePath:line:column:)>) tool can also be customized
 to allow for other ways of reporting issues. It can be configured to trigger a breakpoint if you
 want to do some debugging when an issue is reported, or a precondition or fatal error if you want
-to truly stop execution. And you can create your own custom issue reporter to send issues to OSLog 
-or an external server. 
+to truly stop execution. And you can create your own custom issue reporter to send issues to OSLog
+or an external server.
 
 Further, when running your code in a testing context (both Swift's native Testing framework as well
 as XCTest), all reported issues become _test failures_. This helps you get test coverage that
@@ -69,26 +74,25 @@ that ship in the same target as the library itself.
 
 The library comes with a variety of issue reporters that can be used right away:
 
-  * ``IssueReporter/runtimeWarning``: Issues are reported as purple runtime warnings in Xcode and
+  * ``IssueReporter/default``: Issues are reported as purple runtime warnings in Xcode and
     printed to the console on all other platforms. This is the default reporter.
   * ``IssueReporter/breakpoint``: A breakpoint is triggered, stopping execution of your app. This
     gives you the ability to debug the issue.
   * ``IssueReporter/fatalError``: A fatal error is raised and execution of your app is permanently
     stopped.
 
-You an also create your own custom issue reporter by defining a type that conforms to the 
-``IssueReporter`` protocol. It has one requirement,
-``IssueReporter/reportIssue(_:fileID:filePath:line:column:)``, which you can implement to report
-issues in any way you want.
+You can create your own custom issue reporter by defining a type that conforms to the
+``IssueReporter`` protocol. Its primary requirement is
+``IssueReporter/reportIssue(_:severity:fileID:filePath:line:column:)``, which you can implement to
+report issues in any way you want.
 
 ## Overriding issue reporters
 
-By default the library uses the ``IssueReporter/runtimeWarning`` reporter, but it is possible to 
+By default the library uses the ``IssueReporter/default`` reporter, but it is possible to
 override the reporters used. There are two primary ways:
 
   * You can temporarily override reporters for a lexical scope using
-    ``withIssueReporters(_:operation:)-91179``. For example, to turn off reporting entirely you can
-    do:
+    ``withIssueReporters(_:operation:)``. For example, to turn off reporting entirely you can do:
 
     ```swift
     withIssueReporters([]) {
@@ -109,7 +113,7 @@ override the reporters used. There are two primary ways:
 
     ```swift
     import IssueReporting
-    import SwiftUI 
+    import SwiftUI
 
     @main
     struct MyApp: App {
@@ -129,7 +133,7 @@ invoked it will report an issue. This can be useful for a common pattern of defi
 closures that allow a child domain to communicate to the parent domain.
 
 For example, suppose you have a child feature that has a delete button to delete the data associated
-with the feature. However, the child feature can't actually perform the deletion itself, and 
+with the feature. However, the child feature can't actually perform the deletion itself, and
 instead needs to communicate to the parent to perform the deletion. One way to do this is to
 have the child model hold onto a `onDelete` callback closure:
 
@@ -144,12 +148,12 @@ class ChildModel {
 }
 ```
 
-Then when the parent model creates the child model it will need to provide this closure and 
+Then when the parent model creates the child model it will need to provide this closure and
 perform the actual deletion logic:
 
 ```swift
 class ParentModel {
-  var child: ChildModel? 
+  var child: ChildModel?
 
   func presentChildButtonTapped() {
     child = ChildModel(onDelete: {
@@ -160,11 +164,11 @@ class ParentModel {
 ```
 
 However, requiring the `onDelete` closure at the time of creating a `ChildModel` is too restrictive.
-Sometimes you need to create the `ChildModel` in situations where it is not appropriate to 
+Sometimes you need to create the `ChildModel` in situations where it is not appropriate to
 provide the `onDelete` closure. For example, when deep linking into the child feature:
 
 ```swift
-import SwiftUI 
+import SwiftUI
 
 @main
 struct MyApp: App {
@@ -205,7 +209,7 @@ the `onDelete` closure, which will subtly break your feature.
 
 The fix is to strike a balance between the restrictiveness of requiring the closure and the
 laxness of making it fully optional. By using the library's
-[`unimplemented`](<doc:unimplemented(_:fileID:filePath:function:line:column:)-1hsov>) tool we can
+[`unimplemented`](<doc:unimplemented(_:fileID:filePath:function:line:column:)>) tool we can
 mark the closure as unimplemented:
 
 ```swift

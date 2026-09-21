@@ -1,10 +1,10 @@
 Pod::Spec.new do |s|
   s.name           = 'IssueReporting'
-  s.version        = '1.8.4'
+  s.version        = '2.1.1'
   s.summary        = 'Unobtrusive Swift issue reporting.'
-  s.description    = 'Lightweight issue reporting tools extracted from XCTestDynamicOverlay.'
+  s.description    = 'Lightweight Swift issue reporting tools.'
   s.author         = 'Point-Free'
-  s.homepage       = 'https://github.com/pointfreeco/xctest-dynamic-overlay'
+  s.homepage       = 'https://github.com/pointfreeco/swift-issue-reporting'
   s.license        = { type: 'MIT', file: 'LICENSE' }
   s.platforms      = { ios: '13.0', macos: '10.15', tvos: '13.0', watchos: '6.0' }
   s.source         = { git: 'https://github.com/mibattaglia/swift-issue-reporting.git', tag: s.version.to_s }

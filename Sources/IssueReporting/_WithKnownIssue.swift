@@ -1,48 +1,6 @@
-/// Invoke a function that has an issue that is expected to occur during its execution.
-///
-/// A generalized version of Swift Testing's [`withKnownIssue`][withKnownIssue] that works with this
-/// library's [`reportIssue`](<doc:reportIssue(_:fileID:filePath:line:column:)>) instead of just
-/// Swift Testing's tools.
-///
-/// At runtime it can be used to lower the log level of reported issues:
-///
-/// ```swift
-/// // Emits a "purple" warning to Xcode and logs a fault-level message to console
-/// reportIssue("Failed")
-///
-/// withExpectedIssue {
-///   // Simply logs an info-level message
-///   reportIssue("Failed")
-/// }
-/// ```
-///
-/// During test runs, the issue will be sent to Swift Testing's [`withKnownIssue`][withKnownIssue]
-/// _or_ XCTest's [`XCTExpectFailure`][XCTExpectFailure] accordingly, which means you can use it to
-/// drive custom assertion helpers that you want to work in both Swift Testing and XCTest.
-///
-/// Errors thrown from the function are automatically caught and reported as issues:
-///
-/// ```swift
-/// withExpectedIssue {
-///   // If this function throws an error, it will be caught and reported as an issue
-///   try functionThatCanFail()
-/// }
-/// ```
-///
-/// [withKnownIssue]: https://developer.apple.com/documentation/testing/withknownissue(_:isintermittent:fileid:filepath:line:column:_:)-30kgk
-/// [XCTExpectFailure]: https://developer.apple.com/documentation/xctest/3727246-xctexpectfailure/
-///
-/// - Parameters:
-///   - message: An optional message describing the expected issue.
-///   - isIntermittent: Whether or not the expected issue occurs intermittently. If this argument is
-///     `true` and the expected issue does not occur, no secondary issue is recorded.
-///   - fileID: The source `#fileID` associated with the issue.
-///   - filePath: The source `#filePath` associated with the issue.
-///   - line: The source `#line` associated with the issue.
-///   - column: The source `#column` associated with the issue.
-///   - body: The function to invoke.
+// NB: A dynamic version of 'Testing.withKnownIssue'
 @_transparent
-public func withExpectedIssue(
+public func _withKnownIssue(
   _ message: String? = nil,
   isIntermittent: Bool = false,
   fileID: StaticString = #fileID,
@@ -113,26 +71,9 @@ public func withExpectedIssue(
 }
 
 #if compiler(>=6.0.2)
-  /// Invoke an asynchronous function that has an issue that is expected to occur during its
-  /// execution.
-  ///
-  /// An asynchronous version of
-  /// ``withExpectedIssue(_:isIntermittent:fileID:filePath:line:column:_:)-9pinm``.
-  ///
-  /// > Warning: The asynchronous version of this function is incompatible with XCTest and will
-  /// > unconditionally report an issue when used, instead.
-  ///
-  /// - Parameters:
-  ///   - message: An optional message describing the expected issue.
-  ///   - isIntermittent: Whether or not the known expected occurs intermittently. If this argument is
-  ///     `true` and the expected issue does not occur, no secondary issue is recorded.
-  ///   - fileID: The source `#fileID` associated with the issue.
-  ///   - filePath: The source `#filePath` associated with the issue.
-  ///   - line: The source `#line` associated with the issue.
-  ///   - column: The source `#column` associated with the issue.
-  ///   - body: The asynchronous function to invoke.
+  // NB: A dynamic version of 'Testing.withKnownIssue'
   @_transparent
-  public func withExpectedIssue(
+  public func _withKnownIssue(
     _ message: String? = nil,
     isIntermittent: Bool = false,
     isolation: isolated (any Actor)? = #isolation,
@@ -140,7 +81,7 @@ public func withExpectedIssue(
     filePath: StaticString = #filePath,
     line: UInt = #line,
     column: UInt = #column,
-    _ body: () async throws -> Void
+    _ body: _AsyncThrowingBody
   ) async {
     guard let context = TestContext.current else {
       guard !isTesting else { return }
@@ -205,14 +146,14 @@ public func withExpectedIssue(
   }
 #else
   @_transparent
-  public func withExpectedIssue(
+  public func _withKnownIssue(
     _ message: String? = nil,
     isIntermittent: Bool = false,
     fileID: StaticString = #fileID,
     filePath: StaticString = #filePath,
     line: UInt = #line,
     column: UInt = #column,
-    _ body: () async throws -> Void
+    _ body: _AsyncThrowingBody
   ) async {
     guard let context = TestContext.current else {
       guard !isTesting else { return }
