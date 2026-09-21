@@ -1,7 +1,7 @@
-import Foundation
+public import Foundation
 
 #if canImport(os)
-  import os
+  public import os
 #endif
 
 extension IssueReporter where Self == _DefaultReporter {
@@ -60,6 +60,7 @@ public struct _DefaultReporter: IssueReporter {
   @_transparent
   public func reportIssue(
     _ message: @autoclosure () -> String?,
+    severity: IssueSeverity,
     fileID: StaticString,
     filePath: StaticString,
     line: UInt,
@@ -67,18 +68,39 @@ public struct _DefaultReporter: IssueReporter {
   ) {
     guard !isTesting else {
       let message = message()
-      _recordIssue(
-        message: message,
-        fileID: "\(fileID)",
-        filePath: "\(filePath)",
-        line: Int(line),
-        column: Int(column)
-      )
-      _XCTFail(
-        message.withAppHostWarningIfNeeded() ?? "",
-        file: filePath,
-        line: line
-      )
+      #if compiler(>=6.3)
+        switch TestContext.current {
+        case .swiftTesting, nil:
+          _recordIssue(
+            message: message,
+            severity: severity,
+            fileID: "\(fileID)",
+            filePath: "\(filePath)",
+            line: Int(line),
+            column: Int(column)
+          )
+        case .xcTest:
+          _XCTFail(
+            message.withAppHostWarningIfNeeded() ?? "",
+            file: filePath,
+            line: line
+          )
+        }
+      #else
+        _recordIssue(
+          message: message,
+          severity: severity,
+          fileID: "\(fileID)",
+          filePath: "\(filePath)",
+          line: Int(line),
+          column: Int(column)
+        )
+        _XCTFail(
+          message.withAppHostWarningIfNeeded() ?? "",
+          file: filePath,
+          line: line
+        )
+      #endif
       return
     }
     runtimeWarn(message(), fileID: fileID, line: line)
@@ -94,19 +116,40 @@ public struct _DefaultReporter: IssueReporter {
     column: UInt
   ) {
     guard !isTesting else {
-      _recordError(
-        error: error,
-        message: message(),
-        fileID: "\(fileID)",
-        filePath: "\(filePath)",
-        line: Int(line),
-        column: Int(column)
-      )
-      _XCTFail(
-        "Caught error: \(error)\(message().map { ": \($0)" } ?? "")".withAppHostWarningIfNeeded(),
-        file: filePath,
-        line: line
-      )
+      let message = message()
+      #if compiler(>=6.3)
+        switch TestContext.current {
+        case .swiftTesting, nil:
+          _recordError(
+            error: error,
+            message: message,
+            fileID: "\(fileID)",
+            filePath: "\(filePath)",
+            line: Int(line),
+            column: Int(column)
+          )
+        case .xcTest:
+          _XCTFail(
+            "Caught error: \(error)\(message.map { ": \($0)" } ?? "")".withAppHostWarningIfNeeded(),
+            file: filePath,
+            line: line
+          )
+        }
+      #else
+        _recordError(
+          error: error,
+          message: message,
+          fileID: "\(fileID)",
+          filePath: "\(filePath)",
+          line: Int(line),
+          column: Int(column)
+        )
+        _XCTFail(
+          "Caught error: \(error)\(message.map { ": \($0)" } ?? "")".withAppHostWarningIfNeeded(),
+          file: filePath,
+          line: line
+        )
+      #endif
       return
     }
     runtimeWarn(
@@ -149,19 +192,19 @@ public struct _DefaultReporter: IssueReporter {
     fileID: StaticString,
     line: UInt
   ) {
+    var message = message() ?? ""
+    if message.isEmpty {
+      message = "Issue reported"
+    }
     #if canImport(os)
       guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1"
       else {
-        print("🟣 \(fileID):\(line): \(message() ?? "")")
+        print("🟣 \(fileID):\(line): \(message)")
         return
       }
       let moduleName = String(
         Substring("\(fileID)".utf8.prefix(while: { $0 != UTF8.CodeUnit(ascii: "/") }))
       )
-      var message = message() ?? ""
-      if message.isEmpty {
-        message = "Issue reported"
-      }
       os_log(
         .fault,
         dso: dso,
@@ -170,8 +213,7 @@ public struct _DefaultReporter: IssueReporter {
         "\(isTesting ? "\(fileID):\(line): " : "")\(message)"
       )
     #else
-      printError("\(fileID):\(line): \(message() ?? "")")
+      printError("\(fileID):\(line): \(message)")
     #endif
-
   }
 }

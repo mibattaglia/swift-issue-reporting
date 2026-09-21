@@ -1,9 +1,10 @@
 // swift-tools-version: 6.0
 
+import Foundation
 import PackageDescription
 
 let package = Package(
-  name: "xctest-dynamic-overlay",
+  name: "swift-issue-reporting",
   platforms: [
     .iOS(.v13),
     .macOS(.v10_15),
@@ -14,20 +15,15 @@ let package = Package(
     .library(name: "IssueReporting", targets: ["IssueReporting"]),
     .library(
       name: "IssueReportingTestSupport",
-      type: .dynamic,
+      type: ProcessInfo.processInfo.environment["OMIT_DYNAMIC_TEST_SUPPORT"] == nil
+        ? .dynamic
+        : nil,
       targets: ["IssueReportingTestSupport"]
     ),
-    .library(name: "XCTestDynamicOverlay", targets: ["XCTestDynamicOverlay"]),
   ],
   targets: [
     .target(
-      name: "IssueReportingPackageSupport"
-    ),
-    .target(
-      name: "IssueReporting",
-      dependencies: [
-        "IssueReportingPackageSupport"
-      ]
+      name: "IssueReporting"
     ),
     .testTarget(
       name: "IssueReportingTests",
@@ -43,37 +39,27 @@ let package = Package(
       ]
     ),
     .target(
-      name: "IssueReportingTestSupport",
-      dependencies: [
-        "IssueReportingPackageSupport"
-      ]
-    ),
-    .target(
-      name: "XCTestDynamicOverlay",
-      dependencies: ["IssueReporting"]
-    ),
-    .testTarget(
-      name: "XCTestDynamicOverlayTests",
-      dependencies: [
-        "IssueReportingTestSupport",
-        "XCTestDynamicOverlay",
-      ]
+      name: "IssueReportingTestSupport"
     ),
   ],
   swiftLanguageModes: [.v6]
 )
 
-#if os(macOS)
-  package.dependencies.append(contentsOf: [
-    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
-    .package(url: "https://github.com/swiftwasm/carton", from: "1.0.0"),
+for target in package.targets {
+  target.swiftSettings = target.swiftSettings ?? []
+  target.swiftSettings?.append(contentsOf: [
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("ImmutableWeakCaptures"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("MemberImportVisibility"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
   ])
-  package.targets.append(
-    .executableTarget(
-      name: "WasmTests",
-      dependencies: [
-        "IssueReporting"
-      ]
-    )
+}
+
+#if !os(Windows)
+  // Add the documentation compiler plugin if possible
+  package.dependencies.append(
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.0")
   )
 #endif
